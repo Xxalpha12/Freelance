@@ -4,6 +4,13 @@ PORT="${PORT:-80}"
 sed -i "s/^Listen .*/Listen ${PORT}/" /etc/apache2/ports.conf
 sed -i "s/<VirtualHost \*:[0-9]*>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/000-default.conf
 
+# Behind Render's proxy: make Apache build redirects with the public https URL
+# (otherwise /admin redirects to http://...:10000/admin/ and breaks)
+if [ -n "$RENDER_EXTERNAL_HOSTNAME" ]; then
+  printf "ServerName https://%s:443\nUseCanonicalName On\n" "$RENDER_EXTERNAL_HOSTNAME" \
+    > /etc/apache2/conf-enabled/servername.conf
+fi
+
 # No external database configured -> run the built-in one
 if [ -z "$DB_HOST" ]; then
   echo "Starting built-in MariaDB..."
